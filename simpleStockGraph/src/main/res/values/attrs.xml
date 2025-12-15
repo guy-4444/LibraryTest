@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SimpleGraphView">
+        <!-- Stroke -->
+        <attr name="sgv_strokeColor" format="color" />
+        <attr name="sgv_strokeWidth" format="dimension" />
+
+        <!-- Line mode: 0=straight, 1=curved (default) -->
+        <attr name="sgv_lineMode" format="enum">
+            <enum name="straight" value="0" />
+            <enum name="curved" value="1" />
+        </attr>
+
+        <!-- Curve smoothness: 0.0 (sharp) to 0.5 (very smooth), default 0.2 -->
+        <attr name="sgv_curveSmoothness" format="float" />
+
+        <!-- Gradient fill -->
+        <attr name="sgv_gradientEnabled" format="boolean" />
+        <attr name="sgv_gradientColor" format="color" />
+        <attr name="sgv_gradientAlpha" format="integer" />
+
+        <!-- Background -->
+        <attr name="sgv_backgroundColor" format="color" />
+
+        <!-- Padding -->
+        <attr name="sgv_graphPadding" format="dimension" />
+    </declare-styleable>
+
+    <!-- SimpleBarsView attributes -->
+    <declare-styleable name="SimpleBarsView">
+        <attr name="sbv_positiveColor" format="color" />
+        <attr name="sbv_negativeColor" format="color" />
+        <attr name="sbv_barWidthRatio" format="float" />
+        <attr name="sbv_barCornerRadius" format="dimension" />
+        <attr name="sbv_backgroundColor" format="color" />
+        <attr name="sbv_graphPadding" format="dimension" />
+        <attr name="sbv_verticalPaddingRatio" format="float" />
+    </declare-styleable>
+
+</resources>
