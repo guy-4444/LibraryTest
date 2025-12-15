@@ -40,7 +40,49 @@ class MainActivity : AppCompatActivity() {
         binding.grpGoogle.apply {
             barWidthRatio = 0.3f
             barCornerRadius = 3f
-            setData(stockPrices)
+            setDataFlat(
+                floatArrayOf(
+                    100f, 102f,
+                    102f, 101f,
+                    101f, 104f,
+                    104f, 103f,
+                    103f, 106f,
+                    106f, 107f,
+                    107f, 105f,
+                    105f, 108f,
+                    108f, 110f,
+                    110f, 109f,
+                    109f, 112f,
+                    112f, 113f,
+                    113f, 111f,
+                    111f, 114f,
+                    114f, 116f,
+                    116f, 115f,
+                    115f, 118f,
+                    118f, 120f,
+                    120f, 119f,
+                    119f, 121f,
+                    121f, 123f,
+                    123f, 122f,
+                    122f, 124f,
+                    124f, 125f,
+                    125f, 123f,
+                    123f, 121f,
+                    121f, 122f,
+                    122f, 120f,
+                    120f, 119f,
+                    119f, 117f,
+                    117f, 116f,
+                    116f, 114f,
+                    114f, 113f,
+                    113f, 111f,
+                    111f, 110f,
+                    110f, 108f,
+                    108f, 107f,
+                    107f, 105f,
+                    105f, 104f
+                )
+            )
         }
 
     }

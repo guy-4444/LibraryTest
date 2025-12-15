@@ -34,7 +34,8 @@
         <attr name="sbv_barCornerRadius" format="dimension" />
         <attr name="sbv_backgroundColor" format="color" />
         <attr name="sbv_graphPadding" format="dimension" />
-        <attr name="sbv_verticalPaddingRatio" format="float" />
+        <attr name="sbv_minValue" format="float" />
+        <attr name="sbv_maxValue" format="float" />
     </declare-styleable>
 
 </resources>

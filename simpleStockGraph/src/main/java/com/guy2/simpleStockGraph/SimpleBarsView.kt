@@ -7,19 +7,25 @@ import android.view.View
 import androidx.annotation.ColorInt
 
 /**
- * SimpleBarsView - A lightweight bar chart for displaying gains/losses
+ * SimpleBarsView - A bar chart for stock-like open/close visualization
  *
- * Features:
- * - Green bars for positive values, red for negative
- * - Customizable colors, bar width, spacing, corner radius
- * - Supports baseline at zero or custom position
- * - XML preview support
+ * Each bar represents a segment (day) with open and close values.
+ * - Green: close >= open (price went up)
+ * - Red: close < open (price went down)
+ * - Bar spans from open to close value
  */
 class SimpleBarsView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
+
+    /** Represents a single bar with open and close values */
+    data class BarData(val open: Float, val close: Float) {
+        val isPositive: Boolean get() = close >= open
+        val min: Float get() = minOf(open, close)
+        val max: Float get() = maxOf(open, close)
+    }
 
     // ==================== Paints ====================
     private val positivePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -35,12 +41,11 @@ class SimpleBarsView @JvmOverloads constructor(
     }
 
     // ==================== Data ====================
-    private var dataPoints: FloatArray = floatArrayOf()
+    private var bars: List<BarData> = emptyList()
     private var minValue: Float? = null
     private var maxValue: Float? = null
-    private var calculatedMin: Float = -1f
+    private var calculatedMin: Float = 0f
     private var calculatedMax: Float = 1f
-    private var baselineValue: Float = 0f
 
     // ==================== Properties ====================
     @ColorInt
@@ -66,7 +71,7 @@ class SimpleBarsView @JvmOverloads constructor(
             invalidate()
         }
 
-    /** Corner radius for bars */
+    /** Corner radius for bars (only top corners are rounded) */
     var barCornerRadius: Float = 4f
         set(value) {
             field = value
@@ -86,13 +91,6 @@ class SimpleBarsView @JvmOverloads constructor(
             invalidate()
         }
 
-    /** Vertical padding ratio to prevent bars touching edges (0.0 - 0.5) */
-    var verticalPaddingRatio: Float = 0.1f
-        set(value) {
-            field = value.coerceIn(0f, 0.5f)
-            invalidate()
-        }
-
     // ==================== Init ====================
     init {
         positivePaint.color = positiveColor
@@ -107,42 +105,84 @@ class SimpleBarsView @JvmOverloads constructor(
                 barCornerRadius = ta.getDimension(R.styleable.SimpleBarsView_sbv_barCornerRadius, 4f)
                 graphBackground = ta.getColor(R.styleable.SimpleBarsView_sbv_backgroundColor, COLOR_DARK_BG)
                 graphPadding = ta.getDimension(R.styleable.SimpleBarsView_sbv_graphPadding, 16f)
-                verticalPaddingRatio = ta.getFloat(R.styleable.SimpleBarsView_sbv_verticalPaddingRatio, 0.1f)
+                minValue = if (ta.hasValue(R.styleable.SimpleBarsView_sbv_minValue))
+                    ta.getFloat(R.styleable.SimpleBarsView_sbv_minValue, 0f) else null
+                maxValue = if (ta.hasValue(R.styleable.SimpleBarsView_sbv_maxValue))
+                    ta.getFloat(R.styleable.SimpleBarsView_sbv_maxValue, 0f) else null
             } finally {
                 ta.recycle()
             }
         }
 
         if (isInEditMode) {
-            dataPoints = generatePreviewData()
+            bars = generatePreviewData()
             calculateMinMax()
         }
     }
 
-    private fun generatePreviewData(): FloatArray {
-        return floatArrayOf(
-            3f, -2f, 5f, -4f, 2f, -1f, 6f, -3f, 4f, -5f,
-            2f, -2f, 7f, -4f, 3f, -6f, 5f, -2f, 4f, -3f,
-            6f, -1f, 3f, -4f, 5f, -2f, 4f, -5f, 3f, -3f
+    private fun generatePreviewData(): List<BarData> {
+        return listOf(
+            BarData(50f, 65f),   // +
+            BarData(64f, 55f),   // -
+            BarData(56f, 75f),   // +
+            BarData(74f, 60f),   // -
+            BarData(61f, 80f),   // +
+            BarData(79f, 70f),   // -
+            BarData(71f, 90f),   // +
+            BarData(89f, 78f),   // -
+            BarData(79f, 95f),   // +
+            BarData(94f, 85f),   // -
+            BarData(86f, 72f),   // -
+            BarData(73f, 88f),   // +
+            BarData(87f, 100f),  // +
+            BarData(99f, 90f),   // -
+            BarData(91f, 82f),   // -
+            BarData(83f, 95f),   // +
+            BarData(94f, 105f),  // +
+            BarData(104f, 92f),  // -
+            BarData(93f, 110f),  // +
+            BarData(109f, 98f),  // -
+            BarData(99f, 88f),   // -
+            BarData(89f, 102f),  // +
+            BarData(101f, 115f), // +
+            BarData(114f, 105f), // -
+            BarData(106f, 95f),  // -
+            BarData(96f, 108f),  // +
+            BarData(107f, 120f), // +
+            BarData(119f, 110f), // -
+            BarData(111f, 125f), // +
+            BarData(124f, 115f)  // -
         )
     }
 
     // ==================== Data Methods ====================
 
-    fun setData(data: FloatArray) {
-        dataPoints = data.copyOf()
+    /** Set data from list of BarData */
+    fun setData(data: List<BarData>) {
+        bars = data.toList()
         calculateMinMax()
         invalidate()
     }
 
-    fun setData(data: IntArray) {
-        dataPoints = data.map { it.toFloat() }.toFloatArray()
+    /** Set data from paired arrays: opens[i] and closes[i] form one bar */
+    fun setData(opens: FloatArray, closes: FloatArray) {
+        require(opens.size == closes.size) { "Opens and closes arrays must have same size" }
+        bars = opens.zip(closes.toList()) { open, close -> BarData(open, close) }
         calculateMinMax()
         invalidate()
     }
 
-    fun setData(data: List<Number>) {
-        dataPoints = data.map { it.toFloat() }.toFloatArray()
+    /** Set data from list of Pairs (open, close) */
+    fun setDataPairs(data: List<Pair<Float, Float>>) {
+        bars = data.map { BarData(it.first, it.second) }
+        calculateMinMax()
+        invalidate()
+    }
+
+    /** Set data from flat array: [open1, close1, open2, close2, ...] */
+    fun setDataFlat(data: FloatArray) {
+        require(data.size % 2 == 0) { "Data array must have even number of elements" }
+        bars = data.toList().chunked(2) { BarData(it[0], it[1]) }
         calculateMinMax()
         invalidate()
     }
@@ -155,33 +195,18 @@ class SimpleBarsView @JvmOverloads constructor(
         invalidate()
     }
 
-    /** Set custom baseline value (default is 0) */
-    fun setBaseline(value: Float) {
-        baselineValue = value
-        invalidate()
-    }
-
     private fun calculateMinMax() {
-        if (dataPoints.isEmpty()) {
-            calculatedMin = -1f
+        if (bars.isEmpty()) {
+            calculatedMin = 0f
             calculatedMax = 1f
             return
         }
 
-        val dataMin = dataPoints.minOrNull() ?: 0f
-        val dataMax = dataPoints.maxOrNull() ?: 0f
+        val allMin = bars.minOfOrNull { it.min } ?: 0f
+        val allMax = bars.maxOfOrNull { it.max } ?: 1f
 
-        // Ensure baseline is included in range
-        calculatedMin = minValue ?: minOf(dataMin, baselineValue)
-        calculatedMax = maxValue ?: maxOf(dataMax, baselineValue)
-
-        // Add padding
-        val range = calculatedMax - calculatedMin
-        if (range > 0) {
-            val padding = range * verticalPaddingRatio
-            calculatedMin -= padding
-            calculatedMax += padding
-        }
+        calculatedMin = minValue ?: allMin
+        calculatedMax = maxValue ?: allMax
 
         // Avoid zero range
         if (calculatedMax == calculatedMin) {
@@ -191,6 +216,9 @@ class SimpleBarsView @JvmOverloads constructor(
 
     // ==================== Drawing ====================
 
+    private val barRect = RectF()
+    private val barPath = Path()
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -198,41 +226,33 @@ class SimpleBarsView @JvmOverloads constructor(
         backgroundPaint.color = graphBackground
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
 
-        if (dataPoints.isEmpty()) return
+        if (bars.isEmpty()) return
 
         val graphWidth = width - 2 * graphPadding
-        val graphHeight = height - 2 * graphPadding
-        val barSpacing = graphWidth / dataPoints.size
+        val graphHeight = height.toFloat()
+        val barSpacing = graphWidth / bars.size
         val barWidth = barSpacing * barWidthRatio
 
-        // Calculate baseline Y position
-        val baselineY = graphPadding + graphHeight * (1 - (baselineValue - calculatedMin) / (calculatedMax - calculatedMin))
-
-        dataPoints.forEachIndexed { index, value ->
+        bars.forEachIndexed { index, bar ->
             val centerX = graphPadding + barSpacing * index + barSpacing / 2
             val left = centerX - barWidth / 2
             val right = centerX + barWidth / 2
 
-            // Calculate bar top/bottom
-            val valueY = graphPadding + graphHeight * (1 - (value - calculatedMin) / (calculatedMax - calculatedMin))
+            // Calculate Y positions (inverted: 0 at top)
+            val range = calculatedMax - calculatedMin
+            val topY = graphHeight * (1 - (bar.max - calculatedMin) / range)
+            val bottomY = graphHeight * (1 - (bar.min - calculatedMin) / range)
 
-            val paint = if (value >= baselineValue) positivePaint else negativePaint
+            val paint = if (bar.isPositive) positivePaint else negativePaint
 
-            val top: Float
-            val bottom: Float
-            if (value >= baselineValue) {
-                top = valueY
-                bottom = baselineY
+            // Draw bar with rounded corners
+            if (barCornerRadius > 0 && (bottomY - topY) > barCornerRadius * 2) {
+                barPath.reset()
+                barRect.set(left, topY, right, bottomY)
+                barPath.addRoundRect(barRect, barCornerRadius, barCornerRadius, Path.Direction.CW)
+                canvas.drawPath(barPath, paint)
             } else {
-                top = baselineY
-                bottom = valueY
-            }
-
-            // Draw rounded rect bar
-            if (barCornerRadius > 0) {
-                canvas.drawRoundRect(left, top, right, bottom, barCornerRadius, barCornerRadius, paint)
-            } else {
-                canvas.drawRect(left, top, right, bottom, paint)
+                canvas.drawRect(left, topY, right, bottomY, paint)
             }
         }
     }
@@ -257,5 +277,8 @@ class SimpleBarsView @JvmOverloads constructor(
         val COLOR_PINK = Color.parseColor("#EC4899")
         val COLOR_CYAN = Color.parseColor("#22D3EE")
         val COLOR_DARK_BG = Color.parseColor("#1A1A2E")
+
+        /** Helper to create BarData */
+        fun bar(open: Float, close: Float) = BarData(open, close)
     }
 }

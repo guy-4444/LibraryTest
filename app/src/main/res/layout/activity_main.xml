@@ -27,6 +27,9 @@
         android:layout_height="200dp"
         android:layout_above="@id/grpApple"
         android:layout_margin="32dp"
+        app:sbv_barWidthRatio="0.3"
+        app:sbv_barCornerRadius="3dp"
+        app:sbv_backgroundColor="#1A1A2E"
         />
 
 </RelativeLayout>
